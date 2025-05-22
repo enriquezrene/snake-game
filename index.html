@@ -271,6 +271,7 @@
         let dy = 0; // Direction y
         let changingDirection = false; // Prevent rapid direction changes
         let gameInterval = null; // To store the setInterval ID for clearing, initialized to null
+        let tongueAnimationCounter = 0; // New: Counter for tongue animation
 
         const initialSnakeLength = 3;
         const initialGameSpeed = 150; // Milliseconds per frame (lower is faster)
@@ -307,6 +308,7 @@
             score = 0;
             gameSpeed = initialGameSpeed;
             changingDirection = false;
+            tongueAnimationCounter = 0; // Reset counter on game init
         }
 
         function generateFood() {
@@ -349,6 +351,13 @@
             const eyeRadius = headSize * 0.1;
             const eyeOffset = headSize * 0.25;
 
+            // Tongue animation: alternate length more dramatically
+            const baseTongueLength = headSize * 0.4;
+            const animatedTongueLength = (tongueAnimationCounter % 2 === 0) ? baseTongueLength : baseTongueLength * 0.2; // Exaggerated shortening
+            const tongueWidth = headSize * 0.05;
+            const tongueForkOffset = headSize * 0.08;
+
+
             // Main head shape (slightly rounded)
             ctx.fillStyle = '#32CD32'; // Lime Green for head
             ctx.strokeStyle = '#006400'; // Dark Green border
@@ -385,19 +394,64 @@
                 ctx.arc(headX + headSize - eyeOffset, headY + headSize - eyeOffset, eyeRadius, 0, Math.PI * 2);
                 ctx.fill();
             }
+
+            // Tongue
+            ctx.fillStyle = '#FF4500'; // OrangeRed for tongue
+            ctx.beginPath();
+            if (directionX === 1) { // Right
+                ctx.moveTo(headX + headSize, headY + headSize / 2 - tongueWidth / 2);
+                ctx.lineTo(headX + headSize + animatedTongueLength, headY + headSize / 2 - tongueForkOffset);
+                ctx.lineTo(headX + headSize + animatedTongueLength, headY + headSize / 2 + tongueForkOffset);
+                ctx.lineTo(headX + headSize, headY + headSize / 2 + tongueWidth / 2);
+            } else if (directionX === -1) { // Left
+                ctx.moveTo(headX, headY + headSize / 2 - tongueWidth / 2);
+                ctx.lineTo(headX - animatedTongueLength, headY + headSize / 2 - tongueForkOffset);
+                ctx.lineTo(headX - animatedTongueLength, headY + headSize / 2 + tongueForkOffset);
+                ctx.lineTo(headX, headY + headSize / 2 + tongueWidth / 2);
+            } else if (directionY === -1) { // Up
+                ctx.moveTo(headX + headSize / 2 - tongueWidth / 2, headY);
+                ctx.lineTo(headX + headSize / 2 - tongueForkOffset, headY - animatedTongueLength);
+                ctx.lineTo(headX + headSize / 2 + tongueForkOffset, headY - animatedTongueLength);
+                ctx.lineTo(headX + headSize / 2 + tongueWidth / 2, headY);
+            } else if (directionY === 1) { // Down
+                ctx.moveTo(headX + headSize / 2 - tongueWidth / 2, headY + headSize);
+                ctx.lineTo(headX + headSize / 2 - tongueForkOffset, headY + headSize + animatedTongueLength);
+                ctx.lineTo(headX + headSize / 2 + tongueForkOffset, headY + headSize + animatedTongueLength);
+                ctx.lineTo(headX + headSize / 2 + tongueWidth / 2, headY + headSize);
+            }
+            ctx.closePath();
+            ctx.fill();
         }
 
         function drawSnakeSegment(segment) {
             drawRoundedRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize, cellSize * 0.2, '#00ff00', '#008800');
         }
 
+        // Function to draw the snake tail
+        function drawSnakeTail(segment, prevSegment) {
+            const tailX = segment.x * cellSize;
+            const tailY = segment.y * cellSize;
+            const tailSize = cellSize;
+            const radius = tailSize * 0.2;
+
+            // Draw a slightly darker, smaller rounded rectangle for the tail
+            ctx.fillStyle = '#00AA00'; // Darker green for tail
+            ctx.strokeStyle = '#006600'; // Even darker green border
+            drawRoundedRect(tailX + tailSize * 0.1, tailY + tailSize * 0.1, tailSize * 0.8, tailSize * 0.8, radius * 0.8, ctx.fillStyle, ctx.strokeStyle);
+
+            // Optional: Draw a tapering effect for the very tip of the tail
+            // For simplicity, we'll just make it a slightly smaller rounded rectangle.
+        }
+
         function drawFood() {
-            ctx.fillStyle = '#ff0000'; // Red food
-            ctx.strokeStyle = '#880000'; // Darker red border
-            ctx.beginPath();
-            ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2 * 0.8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+            const foodX = food.x * cellSize;
+            const foodY = food.y * cellSize;
+            const foodSize = cellSize;
+
+            ctx.font = `${foodSize * 0.9}px sans-serif`; // Make emoji fill most of the cell
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐭', foodX + foodSize / 2, foodY + foodSize / 2); // Draw the mouse emoji
         }
 
         function moveSnake() {
@@ -463,9 +517,13 @@
             drawFood();
             // Draw snake head
             drawSnakeHead(snake[0], dx, dy);
-            // Draw snake body
-            for (let i = 1; i < snake.length; i++) {
+            // Draw snake body segments (from 1 up to second-to-last)
+            for (let i = 1; i < snake.length - 1; i++) {
                 drawSnakeSegment(snake[i]);
+            }
+            // Draw snake tail (the very last segment)
+            if (snake.length > 1) { // Ensure there's a tail to draw
+                drawSnakeTail(snake[snake.length - 1], snake[snake.length - 2]);
             }
         }
 
@@ -603,6 +661,7 @@
                     drawGame();
                     updateUI();
                     changingDirection = false; // Allow new direction change after frame update
+                    tongueAnimationCounter++; // Increment tongue animation counter
                 }
             } else {
                 updateUI(); // Keep UI updated for start/game over screens
