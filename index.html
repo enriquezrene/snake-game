@@ -322,11 +322,73 @@
             food = { x: newFoodX, y: newFoodY };
         }
 
+        // Function to draw a rounded rectangle (for snake body segments)
+        function drawRoundedRect(x, y, width, height, radius, color, strokeColor) {
+            ctx.fillStyle = color;
+            ctx.strokeStyle = strokeColor;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Function to draw the snake head
+        function drawSnakeHead(segment, directionX, directionY) {
+            const headX = segment.x * cellSize;
+            const headY = segment.y * cellSize;
+            const headSize = cellSize;
+            const eyeRadius = headSize * 0.1;
+            const eyeOffset = headSize * 0.25;
+
+            // Main head shape (slightly rounded)
+            ctx.fillStyle = '#32CD32'; // Lime Green for head
+            ctx.strokeStyle = '#006400'; // Dark Green border
+            drawRoundedRect(headX, headY, headSize, headSize, headSize * 0.2, ctx.fillStyle, ctx.strokeStyle);
+
+            // Eyes
+            ctx.fillStyle = 'black';
+            if (directionX === 1) { // Moving right
+                ctx.beginPath();
+                ctx.arc(headX + headSize - eyeOffset, headY + eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(headX + headSize - eyeOffset, headY + headSize - eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (directionX === -1) { // Moving left
+                ctx.beginPath();
+                ctx.arc(headX + eyeOffset, headY + eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(headX + eyeOffset, headY + headSize - eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (directionY === -1) { // Moving up
+                ctx.beginPath();
+                ctx.arc(headX + eyeOffset, headY + eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(headX + headSize - eyeOffset, headY + eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (directionY === 1) { // Moving down
+                ctx.beginPath();
+                ctx.arc(headX + eyeOffset, headY + headSize - eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(headX + headSize - eyeOffset, headY + headSize - eyeOffset, eyeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
         function drawSnakeSegment(segment) {
-            ctx.fillStyle = '#00ff00'; // Green snake
-            ctx.strokeStyle = '#008800'; // Darker green border
-            ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
-            ctx.strokeRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+            drawRoundedRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize, cellSize * 0.2, '#00ff00', '#008800');
         }
 
         function drawFood() {
@@ -399,7 +461,12 @@
             }
 
             drawFood();
-            snake.forEach(drawSnakeSegment);
+            // Draw snake head
+            drawSnakeHead(snake[0], dx, dy);
+            // Draw snake body
+            for (let i = 1; i < snake.length; i++) {
+                drawSnakeSegment(snake[i]);
+            }
         }
 
         function updateUI() {
@@ -502,9 +569,9 @@
                     dx = -1; dy = 0;
                 }
             } else { // Vertical swipe
-                if (dySwipe > 0 && dy !== -1) { // Down swipe
+                if (dySwipe > 0 && dy !== -1) { // Down swipe (positive Y in screen, positive Z in 3D)
                     dx = 0; dy = 1;
-                } else if (dySwipe < 0 && dy !== 1) { // Up swipe
+                } else if (dySwipe < 0 && dy !== 1) { // Up swipe (negative Y in screen, negative Z in 3D)
                     dx = 0; dy = -1;
                 }
             }
@@ -525,7 +592,7 @@
             gameInterval = setInterval(gameLoop, gameSpeed); // Start the game loop
         });
 
-        // --- Main Game Loop ---
+        // --- Main Game Loop (for game logic updates) ---
         function gameLoop() {
             if (gameState === GAME_STATES.PLAYING) {
                 if (checkCollision()) {
@@ -542,7 +609,7 @@
             }
         }
 
-        // Start the initial loop to render UI
+        // Start the initial setup on window load
         window.onload = function() {
             resizeCanvas(); // Ensure canvas is sized correctly on load
         };
